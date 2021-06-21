@@ -15,13 +15,14 @@ Add-Type -AssemblyName presentationCore
 
 #region VarDefinitions
 $BasePath = Split-Path $MyInvocation.MyCommand.Path # Get Basepath
-$config = Get-Content -Path "$BasePath\config.txt" | ConvertFrom-Json # Get Config-File
 
 $Warning = "$BasePath\warn.mp3" # "Warning"-sound (first one played)
 $Critical = "$BasePath\crit.mp3" # "Critical"-sound (played after some warnings)
 
 $mediaPlayer = New-Object system.windows.media.mediaplayer
 
+# Config
+$config = Get-Content -Path "$BasePath\config.txt" | ConvertFrom-Json # Get Config-File
 $DrinkTimespan = $config.timespan
 $RepeatWarning = $config.repeatwarning
 $CriticalThreshold = $config.criticalthreshold
@@ -95,7 +96,7 @@ $Main_Tool_Icon.ContextMenu = $contextmenu
 $Main_Tool_Icon.add_MouseDown({$Main_Tool_Icon.GetType().GetMethod("ShowContextMenu",[System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic).Invoke($Main_Tool_Icon,$null)})
 
 $myTimer = new-object System.Windows.Forms.Timer
-$myTimer.Interval = 59950
+$myTimer.Interval = 60000
 $myTimer.add_tick({
     $t = Get-Date
     $td = ($t - $global:Timer)
@@ -118,17 +119,11 @@ $myTimer.add_tick({
             $global:WarnCount++
         }
     }
-    if ($td.Seconds -in 58,59){
-        Start-Sleep -Milliseconds 100
-    }
 })
 #endregion
 
 if ($HideWindow){Hide-Window}
-
 [System.GC]::Collect() # Use a Garbage colector to reduce RAM-usage. See: https://dmitrysotnikov.wordpress.com/2012/02/24/freeing-up-memory-in-powershell-using-garbage-collector/
-
 $myTimer.Start()
-
 $appContext = New-Object System.Windows.Forms.ApplicationContext
 [void][System.Windows.Forms.Application]::Run($appContext)
