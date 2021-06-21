@@ -1,0 +1,7 @@
+{
+"timespan":30,
+"repeatwarning":10,
+"criticalthreshold":2,
+"hidewindow":0,
+"debug":0
+}
