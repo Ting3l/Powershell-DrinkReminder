@@ -112,7 +112,7 @@ $myTimer.add_tick({
             }
             else{
                 Write-Host "Playing critical warning (warn count: $global:WarnCount)"
-                Show-Balloontip(7000, "Seek fluid intake immediately!", $text, 'None')
+                $Main_Tool_Icon.ShowBalloonTip(7000, "Seek fluid intake immediately!", $text, 'None')
                 Play $Critical 3000 1
             }
             $global:LastWarn = Get-Date
