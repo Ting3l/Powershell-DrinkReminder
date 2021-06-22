@@ -1,5 +1,5 @@
 # Drink Reminder by Ting3l
-# Version 1.0
+# Version 1.1
 # Description:
 <#
     Reminds you to drink by playing a sound (custom) and showing a notification after a set time.
@@ -36,6 +36,12 @@ if ($debug){
     $HideWindow = $false
 }
 
+# Icon for Taskbar
+$iconfile = Get-ChildItem "$BasePath\icon.*"
+if ($iconfile.Count -gt 1){$iconfile = $iconfile[0]}
+if ($iconfile.Name.EndsWith(".ico")){$Icon = "$($iconfile.FullName)"}
+elseif ($iconfile.Name.EndsWith(".exe")){$Icon = [System.Drawing.Icon]::ExtractAssociatedIcon("$($iconfile.FullName)")}
+
 $global:Timer = Get-Date
 $global:LastWarn = $global:Timer
 $global:WarnCount = 0
@@ -59,7 +65,7 @@ function Hide-Window(){
 #region GUI
 $Main_Tool_Icon = New-Object System.Windows.Forms.NotifyIcon
 $Main_Tool_Icon.Text = "Fluid Intake"
-$Main_Tool_Icon.Icon = "$BasePath\icon.ico"
+$Main_Tool_Icon.Icon = $Icon
 $Main_Tool_Icon.Visible = $true
 
 $timestamp = New-Object System.Windows.Forms.MenuItem
@@ -100,10 +106,10 @@ $myTimer.Interval = 60000
 $myTimer.add_tick({
     $t = Get-Date
     $td = ($t - $global:Timer)
-    Write-Host "(current time $t) - (timer time $global:Timer) = (time difference $td)"
-    if ($td.Minutes -ge $DrinkTimespan){
-        Write-host " (current time $t) - (last warn time $global:LastWarn) = (time difference $($t - $global:LastWarn))"
-        if (($t - $global:LastWarn).Minutes -ge $RepeatWarning){
+    Write-Host "Last drink: $(([String]$t.TimeOfDay).Split(".")[0]) - $(([String]$global:Timer.TimeOfDay).Split(".")[0]) = $td"
+    if ($td.TotalMinutes -ge $DrinkTimespan){
+        Write-host " Last warn: $(([String]$t.TimeOfDay).Split(".")[0]) - $(([String]$global:LastWarn.TimeOfDay).Split(".")[0]) = $($t - $global:LastWarn)"
+        if (($t - $global:LastWarn).TotalMinutes -ge $RepeatWarning){
             $text = "Last drink $($td.Hours)h, $($td.Minutes)m ago"
             if ($global:WarnCount -lt $CriticalThreshold){
                 Write-Host "Playing warning (previous warn count: $global:WarnCount)"
