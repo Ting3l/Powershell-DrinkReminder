@@ -11,7 +11,7 @@ Installation:
     
     crit.mp3 - After ignoring the reminder a few times it will play the "critical" sound.
     
-    icon.ico - The icon for showing in the taskbar.
+    icon.ico OR icon.exe - The icon for showing in the taskbar.
 - Click on DrinkReminder.cmd to start
 
 OR
