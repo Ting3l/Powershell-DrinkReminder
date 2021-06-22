@@ -1,5 +1,5 @@
 # Drink Reminder by Ting3l
-# Version 1.2
+# Version 1.3
 # Description:
 <#
     Reminds you to drink by playing a sound (custom) and showing a notification after a set time.
@@ -21,6 +21,8 @@ function Refresh-Config ($filepath){
     $global:DrinkTimespan = $config.timespan
     $global:RepeatWarning = $config.repeatwarning
     $global:CriticalThreshold = $config.criticalthreshold
+    $global:WarnVolume = (($config.warnvolume) / 100)
+    $global:CritVolume = (($config.critvolume) / 100)
     $global:debug = [bool]$config.debug
 
     $global:HideWindow = $true
@@ -30,11 +32,12 @@ function Refresh-Config ($filepath){
 
     Write-host $config
 }
-function Play ($Path, $Length, $Volume){
+function Play ($Path, $Volume){
     $mediaPlayer.open($Path)
+    $sleeptime = ([int]$mediaPlayer.NaturalDuration.TimeSpan.TotalMilliseconds) + 200
     $mediaPlayer.Volume = $Volume
     $mediaPlayer.Play()
-    Start-Sleep -Milliseconds $Length
+    Start-Sleep -Milliseconds $sleeptime
     $mediaPlayer.Close()
 }
 function Hide-Window(){
@@ -120,12 +123,12 @@ $myTimer.add_tick({
             if ($WarnCount -lt $CriticalThreshold){
                 Write-Host "Playing warning (previous warn count: $WarnCount)"
                 $Main_Tool_Icon.ShowBalloonTip(7000, "Seek fluid intake.", $text, 'None')
-                Play $Warning 2200 0.3
+                Play $Warning $WarnVolume
             }
             else{
                 Write-Host "Playing critical warning (warn count: $WarnCount)"
                 $Main_Tool_Icon.ShowBalloonTip(7000, "Seek fluid intake immediately!", $text, 'None')
-                Play $Critical 3000 1
+                Play $Critical $CritVolume
             }
             
             $LastWarn = Get-Date
