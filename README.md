@@ -35,5 +35,4 @@ The following options are available:
 - Timespan - Time to warn after the last drink/startup in minutes. Default: 30
 - Repeatwarning - Time until an ignored warning will be repeated in minutes. Default: 10
 - Criticalthreshold - How often the normal warning will be played, before the "critial"-sound is played. Default: 2
-- Hidewindow - hide the Powershell command window. Default: 1
-- Debug - Turn on/off debug-mode. Debug will reduce waittimes to a minute each. Default: 0
+- Debug - Turn on/off debug-mode. Debug mode will not hide the Powershell-Window. Default: 0
