@@ -1,5 +1,5 @@
 # Drink Reminder by Ting3l
-# Version 1.3
+$Version = "1.4"
 # Description:
 <#
     Reminds you to drink by playing a sound (custom) and showing a notification after a set time.
@@ -13,9 +13,19 @@ Add-Type -AssemblyName presentationCore
 [System.Reflection.Assembly]::LoadWithPartialName('WindowsFormsIntegration') | out-null
 #endregion
 
+#region Templates default files
+$configdefault = '{`n"version":"'+$Version+'",`n"timespan":30,`n"repeatwarning":5,`n"criticalthreshold":4,`n"warnvolume":100,`n"critvolume":100,`n"debug":1`n}'
+$cmddefault = '%systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -executionpolicy bypass -file "DrinkReminder.ps1"'
+#endregion
+
 #region CustomFunctions
 function Refresh-Config ($filepath){
     Write-Host Refreshing configuration...
+
+    if (!(Test-Path $filepath)){
+        New-Item $filepath -ItemType File -Value $configdefault -Force
+        Write-Host Created default config file
+    }
 
     $config = Get-Content -Path $filepath | ConvertFrom-Json # Get Config-File
     $global:DrinkTimespan = $config.timespan
@@ -66,6 +76,13 @@ elseif ($iconfile.Name.EndsWith(".exe")){$Icon = [System.Drawing.Icon]::ExtractA
 $Timer = Get-Date
 $LastWarn = $Timer
 $WarnCount = 0
+#endregion
+
+#region Checks
+if (!(Test-Path "$BasePath\DrinkReminder.cmd")){
+    New-Item "$BasePath\DrinkReminder.cmd" -ItemType File -Value $cmddefault -Force
+    Write-Host Created default .cmd-startfile
+}
 #endregion
 
 #region GUI
@@ -143,3 +160,21 @@ if ($HideWindow){Hide-Window}
 $myTimer.Start()
 $appContext = New-Object System.Windows.Forms.ApplicationContext
 [void][System.Windows.Forms.Application]::Run($appContext)
+
+# TODO
+# Automatically create scheduled task, if configured, to autostart at logon
+# Add context-menu "Config" (Open notepad or show a windows form with a configuration dialog?)
+# Add context-menu "About"
+# Add context-menu "Help"
+# Add context-menu "Autostart" (Radio-Button?)
+# Add english language support
+# Add option to customize title of the balloonTips 
+# Add option to turn off balloontips
+# Add option to turn off sound
+# Add error-handling for mandatory files missing (warn.mp3, crit.mp3, icon.ico/.exe)
+# Add drinking-history-log
+# Add general error-handling
+# Comment out!
+# Add ReadMe-File (GER/ENG)
+# Add "Install"-parameter to only create config and .cmd-file fast. (And later also ReadMe.txt)
+# Maybe create own sounds and Icon, so those can be supplied via GitHub?
