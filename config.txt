@@ -2,6 +2,5 @@
 "timespan":30,
 "repeatwarning":10,
 "criticalthreshold":2,
-"hidewindow":1,
 "debug":0
 }
