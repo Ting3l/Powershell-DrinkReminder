@@ -12,6 +12,9 @@ Installation:
     crit.mp3 - After ignoring the reminder a few times it will play the "critical" sound.
     
     icon.ico OR icon.exe - The icon for showing in the taskbar.
+- Right-click DrinkReminder.ps1 and run it with powershell. This will create the config file and a batch-file to start the program easily.
+
+
 - Click on DrinkReminder.cmd to start
 
 OR
