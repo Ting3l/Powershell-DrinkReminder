@@ -35,6 +35,8 @@ Configuration:
 The configuration is done via config.txt.
 The following options are available:
 
+- Version - Not an option, only a reference to the scipt-version which created the file. Unused.
+- Lang - Defines which language is to be used. Possible values: en, de - Unknown values default to en. Default: en
 - Timespan - Time to warn after the last drink/startup in minutes. Default: 30
 - Repeatwarning - Time until an ignored warning will be repeated in minutes. Default: 10
 - Criticalthreshold - How often the normal warning will be played, before the "critial"-sound is played. Default: 2
