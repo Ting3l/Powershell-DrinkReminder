@@ -1,5 +1,5 @@
 # Drink Reminder by Ting3l
-$Version = "1.4"
+$Version = "1.5"
 # Description:
 <#
     Reminds you to drink by playing a sound (custom) and showing a notification after a set time.
@@ -14,8 +14,9 @@ Add-Type -AssemblyName presentationCore
 #endregion
 
 #region Templates default files
-$configdefault = '{`n"version":"'+$Version+'",`n"timespan":30,`n"repeatwarning":5,`n"criticalthreshold":4,`n"warnvolume":100,`n"critvolume":100,`n"debug":1`n}'
+$configdefault = '{`n"version":"'+$Version+'",`n"lang":"en",`n"timespan":30,`n"repeatwarning":5,`n"criticalthreshold":4,`n"warnvolume":100,`n"critvolume":100,`n"debug":1`n}'
 $cmddefault = '%systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -executionpolicy bypass -file "DrinkReminder.ps1"'
+$readme = "PowerShell Drink Reminder by @Ting3l - 2021`nhttps://github.com/Ting3l/Powershell-DrinkReminder`n`nSee online ReadMe: https://github.com/Ting3l/Powershell-DrinkReminder/blob/main/README.md"
 #endregion
 
 #region CustomFunctions
@@ -28,12 +29,45 @@ function Refresh-Config ($filepath){
     }
 
     $config = Get-Content -Path $filepath | ConvertFrom-Json # Get Config-File
+ 
     $global:DrinkTimespan = $config.timespan
     $global:RepeatWarning = $config.repeatwarning
     $global:CriticalThreshold = $config.criticalthreshold
     $global:WarnVolume = (($config.warnvolume) / 100)
     $global:CritVolume = (($config.critvolume) / 100)
     $global:debug = [bool]$config.debug
+
+    if ($global:lang -ne $config.lang){
+        $global:lang = $config.lang
+
+        if ($Global:lang -like "de"){
+            $Global:drinktext = "Getrunken!"
+            $Global:conftext = "Einstellungen.."
+            $Global:helptext = "Hilfe.."
+            $Global:abouttext = "Über.."
+            $Global:exittext = "Beenden"
+            $Global:balloontiptext = "Letztes mal getrunken: "
+            $Global:warntext = "Seek fluid intake"
+            $Global:crittext = "Seek fluid intake immediately!"
+        }
+        else { #default to english
+            $Global:drinktext = "Drank!"
+            $Global:conftext = "Options.."
+            $Global:helptext = "Help.."
+            $Global:abouttext = "About.."
+            $Global:exittext = "Exit"
+            $Global:balloontiptext = "Last drink: "
+            $Global:warntext = "Seek fluid intake"
+            $Global:crittext = "Seek fluid intake immediately!"
+        }
+
+        $timestamp.Text = $Timer
+        $drink.Text = $drinktext
+        $conf.Text = $conftext
+        $help.Text = $helptext
+        $about.Text = $abouttext
+        $exit.Text = $exittext
+    }
 
     $global:HideWindow = $true
     if ($global:debug){$global:HideWindow = $false}
@@ -59,13 +93,14 @@ function Hide-Window(){
 
 #region VarDefinitions
 $BasePath = Split-Path $MyInvocation.MyCommand.Path # Get Basepath
+$configfilepath = "$BasePath\config.txt"
+
+Refresh-Config $configfilepath
 
 $Warning = "$BasePath\warn.mp3" # "Warning"-sound (first one played)
 $Critical = "$BasePath\crit.mp3" # "Critical"-sound (played after some warnings)
 
 $mediaPlayer = New-Object system.windows.media.mediaplayer
-
-$configfilepath = "$BasePath\config.txt"
 
 # Icon for Taskbar
 $iconfile = Get-ChildItem "$BasePath\icon.*"
@@ -78,10 +113,14 @@ $LastWarn = $Timer
 $WarnCount = 0
 #endregion
 
-#region Checks
+#region Check default files
 if (!(Test-Path "$BasePath\DrinkReminder.cmd")){
     New-Item "$BasePath\DrinkReminder.cmd" -ItemType File -Value $cmddefault -Force
     Write-Host Created default .cmd-startfile
+}
+if (!(Test-Path "$BasePath\ReadMe.txt")){
+    New-Item "$BasePath\ReadMe.txt" -ItemType File -Value $readme -Force
+    Write-Host Created ReadMe.txt
 }
 #endregion
 
@@ -95,20 +134,39 @@ $timestamp = New-Object System.Windows.Forms.MenuItem
 $timestamp.Text = $Timer
 
 $drink = New-Object System.Windows.Forms.MenuItem
-$drink.Text = "Getrunken!"
+$drink.Text = $drinktext
 $drink.Add_Click({ 
-    $Timer = Get-Date
-    $LastWarn = $Timer
+    $global:Timer = Get-Date
+    $global:LastWarn = $Timer
     $timestamp.Text = $Timer
-    $WarnCount = 0
+    $global:WarnCount = 0
     $myTimer.Stop()
     Start-Sleep -Milliseconds 100
     $myTimer.Start()
     Write-Host Timer reset 
 })
 
+$conf = New-Object System.Windows.Forms.MenuItem
+$conf.Text = $conftext
+$conf.Add_Click({ 
+    notepad.exe $BasePath\config.txt
+})
+
+$help = New-Object System.Windows.Forms.MenuItem
+$help.Text = $helptext
+$help.Add_Click({ 
+    notepad.exe $BasePath\ReadMe.txt
+})
+
+$about = New-Object System.Windows.Forms.MenuItem
+$about.Text = $abouttext
+$about.Add_Click({ 
+    $popup = New-Object -ComObject Wscript.Shell
+    $popup.Popup("PowerShell Drink Reminder by @Ting3l - 2021`nhttps://github.com/Ting3l/Powershell-DrinkReminder",0,"Über..",64) | Out-Null
+})
+
 $exit = New-Object System.Windows.Forms.MenuItem
-$exit.Text = "Beenden"
+$exit.Text = $exittext
 $exit.add_Click({
     $myTimer.Enabled = $false
     $Main_Tool_Icon.Visible = $false
@@ -118,9 +176,13 @@ $exit.add_Click({
 $contextmenu = New-Object System.Windows.Forms.ContextMenu
 $contextmenu.MenuItems.Add($timestamp) | Out-Null
 $contextmenu.MenuItems.Add($drink) | Out-Null
+$contextmenu.MenuItems.Add($conf) | Out-Null
+$contextmenu.MenuItems.Add($help) | Out-Null
+$contextmenu.MenuItems.Add($about) | Out-Null
 $contextmenu.MenuItems.Add($exit) | Out-Null
 $Main_Tool_Icon.ContextMenu = $contextmenu
 $Main_Tool_Icon.add_MouseDown({$Main_Tool_Icon.GetType().GetMethod("ShowContextMenu",[System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic).Invoke($Main_Tool_Icon,$null)})
+#endregion
 
 $myTimer = new-object System.Windows.Forms.Timer
 $myTimer.Interval = 60000
@@ -135,25 +197,24 @@ $myTimer.add_tick({
         Write-host " Last warn: $(([String]$t.TimeOfDay).Split(".")[0]) - $(([String]$LastWarn.TimeOfDay).Split(".")[0]) = $($t - $LastWarn)"
         
         if (($t - $LastWarn).TotalMinutes -ge $RepeatWarning){
-            $text = "Last drink $($td.Hours)h, $($td.Minutes)m ago"
+            $text = $balloontiptext+"$($td.Hours)h, $($td.Minutes)m"
             
             if ($WarnCount -lt $CriticalThreshold){
                 Write-Host "Playing warning (previous warn count: $WarnCount)"
-                $Main_Tool_Icon.ShowBalloonTip(7000, "Seek fluid intake.", $text, 'None')
+                $Main_Tool_Icon.ShowBalloonTip(7000, $warntext, $text, 'None')
                 Play $Warning $WarnVolume
             }
             else{
                 Write-Host "Playing critical warning (warn count: $WarnCount)"
-                $Main_Tool_Icon.ShowBalloonTip(7000, "Seek fluid intake immediately!", $text, 'None')
+                $Main_Tool_Icon.ShowBalloonTip(7000, $crittext, $text, 'None')
                 Play $Critical $CritVolume
             }
             
-            $LastWarn = Get-Date
-            $WarnCount++
+            $global:LastWarn = Get-Date
+            $global:WarnCount++
         }
     }
 })
-#endregion
 
 if ($HideWindow){Hide-Window}
 [System.GC]::Collect() # Use a Garbage colector to reduce RAM-usage. See: https://dmitrysotnikov.wordpress.com/2012/02/24/freeing-up-memory-in-powershell-using-garbage-collector/
@@ -163,11 +224,7 @@ $appContext = New-Object System.Windows.Forms.ApplicationContext
 
 # TODO
 # Automatically create scheduled task, if configured, to autostart at logon
-# Add context-menu "Config" (Open notepad or show a windows form with a configuration dialog?)
-# Add context-menu "About"
-# Add context-menu "Help"
 # Add context-menu "Autostart" (Radio-Button?)
-# Add english language support
 # Add option to customize title of the balloonTips 
 # Add option to turn off balloontips
 # Add option to turn off sound
@@ -175,6 +232,5 @@ $appContext = New-Object System.Windows.Forms.ApplicationContext
 # Add drinking-history-log
 # Add general error-handling
 # Comment out!
-# Add ReadMe-File (GER/ENG)
 # Add "Install"-parameter to only create config and .cmd-file fast. (And later also ReadMe.txt)
 # Maybe create own sounds and Icon, so those can be supplied via GitHub?
