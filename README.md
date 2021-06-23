@@ -4,7 +4,7 @@ Reminds you to drink by playing a sound (custom) and showing a notification afte
 
 Installation:
 
-- Copy all files locally into a directory from where your user-account can run scripts
+- Copy DrinkReminder.ps1 locally into a directory from where your user-account can run scripts
 - Supply the following files: (I can't supply them here due to copyright)
     
     warn.mp3 - The first sound played. A soft warning.
@@ -17,18 +17,9 @@ Installation:
 
 - Click on DrinkReminder.cmd to start
 
-OR
-- Set up a scheduled task with the follwing parameters:
-    
-    Trigger: At logon of user
-    
-    Action: 
-    
-      Command: C:\Windows\System32\cmd.exe
-      
-      Arguments: /c start cmd /k "C:\path\to\DrinkReminder.cmd"
-      
-      WorkingDirectory: C:\path\to\
+- Richt-click the taskbar-icon and select "Start with Windows" to create a scheduled task to start DrinkReminder at logon of your user.
+
+
 
 Configuration:
 
