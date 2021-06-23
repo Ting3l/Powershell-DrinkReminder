@@ -1,5 +1,5 @@
 # Drink Reminder by Ting3l
-$Version = "1.5"
+$Version = "1.6"
 # Description:
 <#
     Reminds you to drink by playing a sound (custom) and showing a notification after a set time.
@@ -13,18 +13,12 @@ Add-Type -AssemblyName presentationCore
 [System.Reflection.Assembly]::LoadWithPartialName('WindowsFormsIntegration') | out-null
 #endregion
 
-#region Templates default files
-$configdefault = '{`n"version":"'+$Version+'",`n"lang":"en",`n"timespan":30,`n"repeatwarning":5,`n"criticalthreshold":4,`n"warnvolume":100,`n"critvolume":100,`n"debug":1`n}'
-$cmddefault = '%systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -executionpolicy bypass -file "DrinkReminder.ps1"'
-$readme = "PowerShell Drink Reminder by @Ting3l - 2021`nhttps://github.com/Ting3l/Powershell-DrinkReminder`n`nSee online ReadMe: https://github.com/Ting3l/Powershell-DrinkReminder/blob/main/README.md"
-#endregion
-
 #region CustomFunctions
 function Refresh-Config ($filepath){
     Write-Host Refreshing configuration...
 
     if (!(Test-Path $filepath)){
-        New-Item $filepath -ItemType File -Value $configdefault -Force
+        New-Item $filepath -ItemType File -Value $configdefault -Force | Out-Null
         Write-Host Created default config file
     }
 
@@ -43,6 +37,7 @@ function Refresh-Config ($filepath){
         if ($Global:lang -like "de"){
             $Global:drinktext = "Getrunken!"
             $Global:conftext = "Einstellungen.."
+            $Global:autostarttext = "Mit Windows starten"
             $Global:helptext = "Hilfe.."
             $Global:abouttext = "Über.."
             $Global:exittext = "Beenden"
@@ -53,6 +48,7 @@ function Refresh-Config ($filepath){
         else { #default to english
             $Global:drinktext = "Drank!"
             $Global:conftext = "Options.."
+            $Global:autostarttext = "Start with Windows"
             $Global:helptext = "Help.."
             $Global:abouttext = "About.."
             $Global:exittext = "Exit"
@@ -64,6 +60,7 @@ function Refresh-Config ($filepath){
         $timestamp.Text = $Timer
         $drink.Text = $drinktext
         $conf.Text = $conftext
+        $autostart.Text = $autostarttext
         $help.Text = $helptext
         $about.Text = $abouttext
         $exit.Text = $exittext
@@ -95,8 +92,6 @@ function Hide-Window(){
 $BasePath = Split-Path $MyInvocation.MyCommand.Path # Get Basepath
 $configfilepath = "$BasePath\config.txt"
 
-Refresh-Config $configfilepath
-
 $Warning = "$BasePath\warn.mp3" # "Warning"-sound (first one played)
 $Critical = "$BasePath\crit.mp3" # "Critical"-sound (played after some warnings)
 
@@ -113,14 +108,69 @@ $LastWarn = $Timer
 $WarnCount = 0
 #endregion
 
+#region Templates default files
+$configdefault = @"
+{
+"version":"$Version",
+"lang":"en",
+"timespan":30,
+"repeatwarning":5,
+"criticalthreshold":4,
+"warnvolume":100,
+"critvolume":100,
+"debug":1
+}
+"@
+
+$cmddefault = '%systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -executionpolicy bypass -file "DrinkReminder.ps1"'
+
+$readme = @"
+PowerShell Drink Reminder by @Ting3l - 2021
+https://github.com/Ting3l/Powershell-DrinkReminder
+
+See online ReadMe: https://github.com/Ting3l/Powershell-DrinkReminder/blob/main/README.md
+"@
+
+$xml = @"
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo><Author>Ting3l</Author></RegistrationInfo>
+  <Triggers><LogonTrigger>
+      <Enabled>true</Enabled>
+      <UserId>$env:USERDOMAIN\$env:USERNAME</UserId>
+  </LogonTrigger></Triggers>
+  <Principals><Principal id="Author">
+      <UserId>$env:USERDOMAIN\$env:USERNAME</UserId>
+      <LogonType>InteractiveToken</LogonType>
+  </Principal></Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>false</AllowHardTerminate>
+  </Settings>
+  <Actions Context="Author"><Exec>
+      <Command>C:\Windows\System32\cmd.exe</Command>
+      <Arguments>/c "$BasePath\DrinkReminder.cmd"</Arguments>
+      <WorkingDirectory>$BasePath\</WorkingDirectory>
+  </Exec></Actions>
+</Task>
+"@
+#endregion
+
 #region Check default files
 if (!(Test-Path "$BasePath\DrinkReminder.cmd")){
-    New-Item "$BasePath\DrinkReminder.cmd" -ItemType File -Value $cmddefault -Force
+    New-Item "$BasePath\DrinkReminder.cmd" -ItemType File -Value $cmddefault -Force | Out-Null
     Write-Host Created default .cmd-startfile
 }
-if (!(Test-Path "$BasePath\ReadMe.txt")){
-    New-Item "$BasePath\ReadMe.txt" -ItemType File -Value $readme -Force
+if (!(Test-Path "$BasePath\_ReadMe.txt")){
+    New-Item "$BasePath\_ReadMe.txt" -ItemType File -Value $readme -Force | Out-Null
     Write-Host Created ReadMe.txt
+}
+if (Get-ScheduledTask -TaskPath \ -TaskName "Start Drinkreminder" -ErrorAction SilentlyContinue){
+    $autostartenabled = $true
+}
+else{
+    $autostartenabled = $false
 }
 #endregion
 
@@ -129,9 +179,6 @@ $Main_Tool_Icon = New-Object System.Windows.Forms.NotifyIcon
 $Main_Tool_Icon.Text = "Fluid Intake"
 $Main_Tool_Icon.Icon = $Icon
 $Main_Tool_Icon.Visible = $true
-
-$timestamp = New-Object System.Windows.Forms.MenuItem
-$timestamp.Text = $Timer
 
 $drink = New-Object System.Windows.Forms.MenuItem
 $drink.Text = $drinktext
@@ -146,11 +193,36 @@ $drink.Add_Click({
     Write-Host Timer reset 
 })
 
+$timestamp = New-Object System.Windows.Forms.MenuItem
+$timestamp.Text = $Timer
+$timestamp.Enabled = $false
+
+$s1 = New-Object System.Windows.Forms.MenuItem
+$s1.text = "-"
+
 $conf = New-Object System.Windows.Forms.MenuItem
 $conf.Text = $conftext
 $conf.Add_Click({ 
     notepad.exe $BasePath\config.txt
 })
+
+$autostart = New-Object System.Windows.Forms.MenuItem
+$autostart.Text = $autostarttext
+$autostart.Add_Click({ 
+    if ($autostartenabled){
+        Get-ScheduledTask -TaskPath \ -TaskName "Start Drinkreminder" -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false
+        Write-host Removed scheduled task
+    }
+    else{
+        New-Item $BasePath\task.xml -ItemType File -Value $xml -Force | out-null
+        SCHTASKS /Create /TN "Start Drinkreminder" /XML "$($BasePath)\task.xml"
+        Remove-Item $BasePath\task.xml -Force
+        Write-Host Added scheduled task
+    }
+    $global:autostartenabled = !($autostartenabled)
+    $global:autostart.Checked = $autostartenabled
+})
+$autostart.Checked = $autostartenabled
 
 $help = New-Object System.Windows.Forms.MenuItem
 $help.Text = $helptext
@@ -165,6 +237,9 @@ $about.Add_Click({
     $popup.Popup("PowerShell Drink Reminder by @Ting3l - 2021`nhttps://github.com/Ting3l/Powershell-DrinkReminder",0,"Über..",64) | Out-Null
 })
 
+$s2 = New-Object System.Windows.Forms.MenuItem
+$s2.text = "-"
+
 $exit = New-Object System.Windows.Forms.MenuItem
 $exit.Text = $exittext
 $exit.add_Click({
@@ -174,11 +249,14 @@ $exit.add_Click({
 })
 
 $contextmenu = New-Object System.Windows.Forms.ContextMenu
-$contextmenu.MenuItems.Add($timestamp) | Out-Null
 $contextmenu.MenuItems.Add($drink) | Out-Null
+$contextmenu.MenuItems.Add($timestamp) | Out-Null
+$contextmenu.MenuItems.Add($s1) | Out-Null
 $contextmenu.MenuItems.Add($conf) | Out-Null
+$contextmenu.MenuItems.Add($autostart) | Out-Null
 $contextmenu.MenuItems.Add($help) | Out-Null
 $contextmenu.MenuItems.Add($about) | Out-Null
+$contextmenu.MenuItems.Add($s2) | Out-Null
 $contextmenu.MenuItems.Add($exit) | Out-Null
 $Main_Tool_Icon.ContextMenu = $contextmenu
 $Main_Tool_Icon.add_MouseDown({$Main_Tool_Icon.GetType().GetMethod("ShowContextMenu",[System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic).Invoke($Main_Tool_Icon,$null)})
@@ -216,6 +294,7 @@ $myTimer.add_tick({
     }
 })
 
+Refresh-Config $configfilepath
 if ($HideWindow){Hide-Window}
 [System.GC]::Collect() # Use a Garbage colector to reduce RAM-usage. See: https://dmitrysotnikov.wordpress.com/2012/02/24/freeing-up-memory-in-powershell-using-garbage-collector/
 $myTimer.Start()
@@ -223,8 +302,6 @@ $appContext = New-Object System.Windows.Forms.ApplicationContext
 [void][System.Windows.Forms.Application]::Run($appContext)
 
 # TODO
-# Automatically create scheduled task, if configured, to autostart at logon
-# Add context-menu "Autostart" (Radio-Button?)
 # Add option to customize title of the balloonTips 
 # Add option to turn off balloontips
 # Add option to turn off sound
