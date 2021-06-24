@@ -31,6 +31,12 @@ The following options are available:
 - Timespan - Time to warn after the last drink/startup in minutes. Default: 30
 - Repeatwarning - Time until an ignored warning will be repeated in minutes. Default: 10
 - Criticalthreshold - How often the normal warning will be played, before the "critial"-sound is played. Default: 2
+- PlaySound - If sound is played or not. Possible: 0,1 Default: 1
+- WarnFile - Filename of the mp3 played with a warning. Default: warn.mp3
 - WarnVolume - Volume of warning-file (in percent) to compensate for differently balanced soundfiles. Default: 100
+- CritFile - Filename of the mp3 played with a critial warning. Default: warn.mp3
 - CritVolume - Volume of critical-file (in percent) to compensate for differently balanced soundfiles. Default: 100
+- ShowNotifications - If notifications are shown or not. Possible: 0,1 Default: 1
+- WarnText - Title of the notification shown with a warning. Default: "Seek fluid intake"
+- CritText - Title of the notification shown with a critial warning. Default: "Seek fluid intake immediately!"
 - Debug - Turn on/off debug-mode. Debug mode will not hide the Powershell-Window. Default: 0
